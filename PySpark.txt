@@ -1,0 +1,15 @@
+==>
+launch pyspark in the yarn client mode:
+pyspark --master -client
+
+
+==>
+convert CSV file into Parquet file using pyspark command line:
+  - sc.textFile("file.csv")
+    .map(lambda line: line.split(","))
+    .filter(lambda line: len(line)>1)
+    .map(lambda line: (line[0],line[1]))
+    .collect()
+  
+  
+==>

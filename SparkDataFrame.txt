@@ -1,0 +1,18 @@
+==>
+In Python it’s possible to access a DataFrame’s columns either by attribute (df.age) or by indexing (df['age']). While the former is convenient for interactive data exploration, users are highly encouraged to use the latter form, which is future proof and won’t break with column names that are also attributes on the DataFrame class.
+
+
+==>
+http://spark.apache.org/docs/latest/sql-programming-guide.html#dataframe-operations
+http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.DataFrame
+http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#module-pyspark.sql.functions
+
+http://www.meetup.com/spark-users/events/220031485/
+
+
+==>
+https://lab.getbase.com/pandarize-spark-dataframes/
+https://databricks.com/blog/2015/08/12/from-pandas-to-apache-sparks-dataframe.html
+
+
+==>

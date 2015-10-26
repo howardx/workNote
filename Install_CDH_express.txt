@@ -1,0 +1,43 @@
+==> create a new user and new group for CDH distribution:
+    - sudo groupadd cloudera
+    - sudo useradd -g cloudera -m cloudera
+    - sudo passwd cloudera
+
+==> make sure jdk version is up to date on your severs:
+    - do "javac -version" to check the jdk version
+    - CDH 5 requires jdk 1.7.0_55 or later
+
+(Optional) ==> Install appropriate jdk version (using jdk 8 as an example)
+    - go to the Oracle site, agree with their "license agreement"
+        http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html
+    - right click the jdk distribution link that you are looking for, select "Copy link address"
+    - go back to your terminal, use wget. In my case, it's:
+        wget http://download.oracle.com/otn-pub/java/jdk/8u51-b16/jdk-8u51-linux-x64.tar.gz
+    - tar xzf jdk-8u45-linux-i586.tar.gz
+    - move jdk to a sys directory: "mv jdk.../ /opt/"
+    - cd /opt/jdk1.8.0_45/
+    - use "alternatives" command to install, as there could be multiple java already installed on your box:
+        alternatives --install /usr/bin/java java /opt/jdk1.8.0_45/bin/java 2
+    - pick the java version that you want to use on a regular basis:
+        alternatives --config java
+    - user "alternatives" to set the sys commands such as javac, jar and etc.:
+        alternatives --install /usr/bin/jar jar /opt/jdk1.8.0_45/bin/jar 2
+	alternatives --install /usr/bin/javac javac /opt/jdk1.8.0_45/bin/javac 2
+	alternatives --set jar /opt/jdk1.8.0_45/bin/jar
+        alternatives --set javac /opt/jdk1.8.0_45/bin/javac 
+    - set java environment variables:
+        export JAVA_HOME=/opt/jdk1.8.0_45
+        export JRE_HOME=/opt/jdk1.8.0_45/jre
+        export PATH=$PATH:/opt/jdk1.8.0_45/bin:/opt/jdk1.8.0_45/jre/bin
+        
+==> the user who run cloudera-manager-installer MUST BE sudoer:
+    http://askubuntu.com/questions/7477/how-can-i-add-a-new-user-as-sudoer-using-the-command-line
+
+==> SELinux must be disabled in order to run cloudera-manager-installer.
+    http://www.crypt.gen.nz/selinux/disable_selinux.html
+    
+==> if not using single user mode (recommended), the user must be able to do "sudo" without password, edit "/etc/hosts" and add:
+    %YOURUSERNAME%         ALL = (ALL) NOPASSWD: ALL
+    - this user must be able to do the same thing on ALL nodes within the cluster
+    
+    

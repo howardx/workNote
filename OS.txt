@@ -1,0 +1,11 @@
+==> for yum error:
+"Error: xz compression not available"
+
+the way to debug is to remove a couple repositories for yum:
+"rm -rf /etc/yum.repos.d/epel*"
+
+==> when doing "sudo python someScript.py" and seeing this error:
+"sudo: python: command not found"
+http://stackoverflow.com/questions/24684631/python-2-7-not-working-when-i-use-it-with-sudo
+
+==> 

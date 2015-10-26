@@ -1,0 +1,9 @@
+==> luigi -- job scheduler
+
+==> good luigi resource:
+http://help.mortardata.com/technologies/luigi/how_luigi_works
+
+==> luigi config file example:
+https://groups.google.com/forum/#!topic/luigi-user/N83ZeePuqJk
+
+==> 

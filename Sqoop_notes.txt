@@ -1,0 +1,29 @@
+==> sqoop command for loading data from SQLserver
+sqoop import \
+  -Dsqoop.export.records.per.statement=1 \
+  --connect "jdbc:sqlserver://devchi-sql01:64978;database=PB_CP" \
+  --username sql_dal\
+  --password Nd1a@ce4N\
+  --table CLEAN_PB_MS_POS\
+  --hive-import
+
+
+==> If use sqoop import with "--hive-import", the default place to put file splits on HDFS will be "/usr/hive/warehouse/[filename]"
+
+
+==> if during "sqoop import", this error shows up:
+"java.lang.RuntimeException: Could not load db driver class: com.microsoft.sqlserver.jdbc.SQLServerDriver"
+Then you need to download the SQLServerDriver and move it to where sqoop can reach:
+    - curl -L 'http://download.microsoft.com/download/0/2/A/02AAE597-3865-456C-AE7F-613F99F850A8/sqljdbc_4.0.2206.100_enu.tar.gz' | tar xz
+    - sudo cp sqljdbc_4.0/enu/sqljdbc4.jar /var/lib/sqoop/
+    - If there were other SqlServer jdbc jar in "/var/lib/sqoop/", you may need to remove it.
+    
+    
+==>
+for loading data from RDBMS based on results of a SQL query:
+  sqoop import   -Dsqoop.export.records.per.statement=1   --connect "jdbc:sqlserver://devchi-sql01:64978;database=PB_CP"   --username sql_dal  --password Nd1a@ce4N  --query 'SELECT * FROM CLEAN_PB_MS_POS WHERE CLEAN_PB_MS_POS_ID = 270 AND  $CONDITIONS'   --hive-import  --hive-table sqoop_query_out --target-dir sqoop_query_dir2 --m 1
+ 
+  - "WHERE" clause may be needed even if it's empty
+
+
+==>

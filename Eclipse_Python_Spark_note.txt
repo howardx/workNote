@@ -1,0 +1,120 @@
+========== Run Spark on Eclipse with PySpark using local mode on windows machine ================
+
+==> install PyDev on eclipse:
+http://www.pydev.org/manual_101_install.html
+
+==> Download and install spark cluster on local windows machine:
+http://ysinjab.com/2015/03/28/hello-spark/
+    couple things to note here:
+    - right after downloading spark, Hadoop should be installed in order to make Spark and PySpark work.
+    - Hadoop binary can be downloaded at: https://codeload.github.com/srccodes/hadoop-common-2.2.0-bin/zip/master
+    - After downloading Hadoop binary and unzip, all files in "Hadoop\bin\" should be copied over to "Spark\bin\" in order for Spark to call/interact/use Hadoop
+   
+    After these steps Spark can ran in local mode in a local windows machine, with python/scala interactive mode 
+   
+==> Then we need to import all PySpark modules/libraries into our existing PyDev project in eclipse
+    - right click the project in PyDev Package Explorer mode
+    - pick "Properties"
+    - In the window on the left side, click "PyDev - PYTHONPATH"
+    - pick the "External Libraries" tab
+    - Click "Add source folder" button on right
+    - locate your "Spark\python\" folder and click "OK" ( in my case it's "C:\Spark\python", it HAS TO be a folder that contains python modules!!)
+    - Click "OK" and perhaps refresh the project or restart eclipse
+    
+    Now in python scripts you may do "import pyspark"
+    
+==> (Optional) If you see the following error message when trying to instantiate a Spark Context Object:
+"from py4j.java_gateway import java_import, JavaGateway, GatewayClient ImportError: No module named py4j.java_gateway"
+
+you need to install py4j, if you have pip you may use "pip install py4j" through command line.
+
+==> Then the "SPARK_HOME" environment variable needs to be set for windows OS
+    - go to start menu, right click "Computer" then select "Properties"
+    - pick the "Advanced system settings" on the left hand side
+    - click "Environment Variables ..." button
+    - Click "New..." and give it a variable name (HAS TO BE "SPARK_HOME") and variable value (in my case "C:\Spark)
+    
+    For this step (setting the environment variable for SPARK_HOME), what I put above may not work, and it didn't work for me. Hence what I did was to have "os.environ["SPARK_HOME"] = "C:\Spark" at the beginning of every python spark app; and it worked.
+    
+    The reason why we cannot simply just set the environment variable and make it work needs to be further investigaged.
+    
+After the above steps, python programs can utilize PySpark under PyDev in Eclipse, with all the debugging features such as breakpoints and step thrus.
+
+
+===================================================================================================================
+
+
+============================= set up Eclipse, Spark and PySpark on a node within Hadoop cluster =================
+
+==> make sure to log onto the server with X11server enabled, using mobaXterm will give you this by default:
+http://mobaxterm.mobatek.net/
+
+==> make sure the display is open for forwarding by X11server:
+    - in file /etc/ssh/sshd_config
+    - make sure entry "X11Forwarding yes" is set
+    
+==> make sure the X11 forwarding is set to your local machine:
+    - run "export DISPLAY=<IP_OF_YOUR_LOCAL_MACHINE>:0.0"
+    - "<IP_OF_YOUR_LOCAL_MACHINE>" will be replaced by IP address of your local machine (where you want to see GUI)
+
+==> download Eclipse using wget:
+wget http://mirror.cc.columbia.edu/pub/software/eclipse/technology/epp/downloads/release/mars/R/eclipse-jee-mars-R-linux-gtk-x86_64.tar.gz
+
+==> unzip eclipse:
+tar -xvf eclipse-jee-mars-R-linux-gtk-x86_64.tar.gz eclipse/
+
+==> enjoy eclipse:
+    cd eclipse/
+    ./eclipse &
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+=================================================================================================================
+
+==> install subversive (SVN plug-in) on eclipse step-by-step guide:
+http://wireframesketcher.com/support/install/installing-subversion-plugin.html
+
+==> import SVN repository using subversive step-by-step guide:
+http://www.cs.wustl.edu/~cytron/cse132/HelpDocs/Subversive/subversive.htm
+
+==> "main" function or "entry point" for MASS, need to be add into "Run Configuration"
+mass/mass/runserver.py 
+
+==> Python run environment need to be changed:
+Python virtual environment for MIO MASS (on network drive): N:\IT\dev\mass\libs\mass_py_venv_x64_2.7 (can be copied over to local drive)
+right click MASS project in PyDev package explorer -> PyDev - Interpreter/Grammar -> "Click here to configure an interpreter not listed" -> "New..." -> 
+
+==> Python dependencies needed for MASS:
+
+

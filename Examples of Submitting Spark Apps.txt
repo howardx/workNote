@@ -1,0 +1,109 @@
+Examples of submitting spark applications
+=========================================
+
+# Run application locally on 8 cores - Scala main class
+./bin/spark-submit \
+  --class org.apache.spark.examples.SparkPi \
+  --master local[8] \
+  /home/hadoop/spark/lib/spark-examples-1.3.1-hadoop2.6.0.jar \
+  100
+  
+  Note: 100 slices results in 100 Tasks. The executor schedules the first 8 tasks on cores 0-7 and as they finish, it schedules Tasks 9 onwards. 
+  Q: what happens if this was running on multiple datanodes? 
+  
+# Run application locally on 8 cores - Java main class
+./bin/spark-submit \
+  --class org.apache.spark.examples.JavaSparkPi \
+  --master local[8] \
+  /home/hadoop/spark/lib/spark-examples-1.3.1-hadoop2.6.0.jar \
+  100
+
+# Run on a Spark Standalone cluster in client deploy mode - does not work. Error:  Invalid address: akka.tcp://sparkMaster@prodny-hdp03.mio.local:7077
+./bin/spark-submit \
+  --class org.apache.spark.examples.SparkPi \
+  --master spark://prodny-hdp03.mio.local:7077 \
+  --executor-memory 20G \
+  --total-executor-cores 100 \
+  /home/hadoop/spark/lib/spark-examples-1.3.1-hadoop2.6.0.jar \
+  100
+
+# Run application locally on 8 cores with supervise - cluster deploy-mode does not work. Error: java.lang.ClassNotFoundException Doesn't make sense since deploy-mode client runs fine
+ ./bin/spark-submit   --class org.apache.spark.examples.SparkPi  \
+ --master local[8]    --deploy-mode client  \
+ --supervise    --executor-memory 4G  \
+ --total-executor-cores 100  \
+ /home/hadoop/spark/lib/spark-examples-1.3.1-hadoop2.6.0.jar \
+ 100
+
+# Run on a YARN cluster - does not work. Error: Exception in thread "main" java.net.URISyntaxException: Illegal character in path at index 0. Also 20G executor-memory fails because cluster max is 8G
+export HADOOP_CONF_DIR=/home/hadoop/hadoop/etc/hadoop
+./bin/spark-submit \
+  --class org.apache.spark.examples.SparkPi \
+  --master yarn-client \ 
+  --executor-memory 4G \
+  --num-executors 50 \
+  /home/hadoop/spark/lib/spark-examples-1.3.1-hadoop2.6.0.jar \
+  100
+
+# Run a Python application on a Spark Standalone cluster - does not work . See variant below that does
+./bin/spark-submit \
+  --master spark://207.184.161.138:7077 \
+  examples/src/main/python/pi.py \
+  100
+  
+# Run a Python application locally on 8 cores - runs fine but the yarn-client version (see below) does not!
+  ./bin/spark-submit \
+    --master local[8] \
+    examples/src/main/python/pi.py \
+  100
+  
+ # Run a Python application in yarn-client mode - Fails with : ImportError: No module named pandas.algos
+  ./bin/spark-submit \
+    --master yarn-client \
+    examples/src/main/python/pi.py \
+  100
+  
+# 
+Running from /home/hadoop/learning-spark-master/mini-complete-example
+----------------------------------------------------------------------
+
+mvn package		#to build java (need this to create the learning-spark-mini-example-0.0.1.jar file in target dir)
+
+Note: the spark-submit command below expects README.md input file to be in hdfs. To make it work I had to first copy
+it there using 'hadoop fs -put README.md README.md'
+Also run:  hdfs dfs -rm -r wordcounts before running program below
+  
+  $SPARK_HOME/bin/spark-submit \
+    --master local[*] \
+    --class com.oreilly.learningsparkexamples.mini.java.WordCount \
+    ./target/learning-spark-mini-example-0.0.1.jar \
+  ./README.md ./wordcounts
+  
+ #To run the cluster version below, had to set executor-memory to 4G to override the 20G specified in spark-env.sh
+   $SPARK_HOME/bin/spark-submit     \
+   --master yarn-client  \
+   --executor-memory 4G   \
+   --class com.oreilly.learningsparkexamples.mini.java.WordCount \
+   target/learning-spark-mini-example-0.0.1.jar  \
+   ./README.md ./wordcounts
+  
+  ./sbt/sbt clean package    #to build scala
+  
+  Note: this blew away my java jar under target dir and created scala jar under target/scala-2.10
+  Also had to blow away output dir before running by doing 'hadoop fs -rm -r wordcounts'
+  
+  $SPARK_HOME/bin/spark-submit \
+      --master local[*] \
+      --class com.oreilly.learningsparkexamples.mini.scala.WordCount \
+      ./target/scala-2.10/learning-spark-mini-example_2.10-0.0.1.jar \
+  ./README.md ./wordcounts
+  
+  
+  Notes on running Spark programs
+  --------------------------------
+  grep ' Starting task 0.0' in the console output to see which datanodes are going to run the job
+  
+  #To run wordcount and only see the final output line 'finished ...' - get an error piping to /dev/stderr
+  $SPARK_HOME/bin/spark-submit     --master yarn-client  --executor-memory 4G   --class com.oreilly.learningsparkexamples.mini.java.WordCount  target/learning-spark-mini-example-0.0.1.jar   ./README.md ./wordcounts | tee /dev/stderr | grep finished
+  
+  

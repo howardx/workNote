@@ -1,0 +1,28 @@
+Rjesh
+1. some hacking for exisitng application - upload intermidiate file onto HDFS ( all application files need to be on HDFS - pre conditino)
+2. OOzie runs everything on the cluster, if specific box shall be used and it's not on cluster then oozie can't be used
+3. HDFS directory should grant permission to all users and groups (!) - user "yarn" used for shell action - may run into other users
+4. poor doc
+
+- Adam/Rajesh
+1. need direct engineering cloudera support
+
+-Uday
+wiki page create OOzie action template, error msg manual - cheat sheet
+
+
+============================================================================================================================================================
+
+1. make cloudera ODBC easy to install
+2. test cloudera ODBC on linux driver
+3. do we want to use HADOOP DAL to write to the data lake for batch processing results?
+4. guage performance for MASS DAL (hive on spark)
+5. codbc much faster than pyodbc
+6. does spark context persist if run hive on spark?
+7. does hive on spark run spark through yarn or running spark standalone?
+8. see if openlava can kick off oozie
+9. add oozie to scheduler spreadsheet
+
+
+============================================================================================================================================================
+*** arrange call with cloudera early next week 

@@ -1,0 +1,119 @@
+==>
+post Hue 3.7, OOzie can be accessed by Hue, through Hue we can create, monitor OOzie workflows ( may not be able to tell from Hue UI that it's OOzie workflow):
+http://gethue.com/new-apache-oozie-workflow-coordinator-bundle-editors/
+
+
+==>
+http://www.jilles.net/perma/2014/05/28/setting-up-an-hadoop-oozie-coordinator-and-workflow/
+
+
+==> OOzie workflow definitions:
+
+Action: An execution/computation task (Map-Reduce job, Pig job, a shell command). It can also be referred as task or 'action node'.
+
+Workflow: A collection of actions arranged in a control dependency DAG (Direct Acyclic Graph). "control dependency" from one action to another means that the second action can't run until the first action has completed.
+
+Workflow Definition: A programmatic description of a workflow that can be executed.
+
+Workflow Definition Language: The language used to define a Workflow Definition.
+
+Workflow Job: An executable instance of a workflow definition.
+
+Workflow Engine: A system that executes workflows jobs. It can also be referred as a DAG engine.
+
+
+==> OOzie coordinator definitions:
+
+The Oozie Coordinator system allows the user to define and execute recurrent and interdependent workflow jobs (data application pipelines).
+
+Actual time: The actual time indicates the time when something actually happens.
+
+Nominal time: The nominal time specifies the time when something should happen. In theory the nominal time and the actual time should mach, however, in practice due to delays the actual time may occur later than the nominal time.
+
+Dataset: Collection of data referred to by a logical name. A dataset normally has several instances of data and each one of them can be referred individually. Each dataset instance is represented by a unique set of URIs.
+
+Synchronous Dataset: Synchronous datasets instances are generated at fixed time intervals and there is a dataset instance associated with each time interval. Synchronous dataset instances are identified by their nominal time. For example, in the case of a file system based dataset, the nominal time would be somewhere in the file path of the dataset instance: hdfs://foo:9000/usr/logs/2009/04/15/23/30 .
+
+Coordinator Action: A coordinator action is a workflow job that is started when a set of conditions are met (input dataset instances are available).
+
+Coordinator Application: A coordinator application defines the conditions under which coordinator actions should be created (the frequency) and when the actions can be started. The coordinator application also defines a start and an end time. Normally, coordinator applications are parameterized. A Coordinator application is written in XML.
+
+Coordinator Job: A coordinator job is an executable instance of a coordination definition. A job submission is done by submitting a job configuration that resolves all parameters in the application definition.
+
+Data pipeline: A data pipeline is a connected set of coordinator applications that consume and produce interdependent datasets.
+
+Coordinator Definition Language: The language used to describe datasets and coordinator applications.
+
+Coordinator Engine: A system that executes coordinator jobs.
+
+
+==>
+Shell Action
+Oozie provides a convenient way to run any shell command. This could be Unix commands, Perl/Python scripts, or even Java programs invoked through the Unix shell. The shell command runs on an arbitrary Hadoop cluster node and the commands being run have to be available locally on that node. It’s important to keep the following limitations and characteristics in mind while using the <shell> action:
+Interactive commands are not allowed.
+You can’t run sudo or run as another user.
+Because the shell command runs on any Hadoop node, you need to be aware of the path of the binary on these nodes. The executable has to be either available on the node or copied by the action via the distributed cache using the <file> tag. For the binaries on the node that are not copied via the cache, it’s perhaps safer and easier to debug if you always use an absolute path.
+It’s not unusual for different nodes in a Hadoop cluster to be running different versions of certain tools or even the operating system. So be aware that the tools on these nodes could have slightly different options, interfaces, and behaviors. While built-in shell commands like grep and ls will probably work fine in most cases, other binaries could either be missing, be at different locations, or have slightly different behaviors depending on which node they run on.
+On a nonsecure Hadoop cluster, the shell command will execute as the Unix user who runs the TaskTracker (Hadoop 1) or the YARN container (Hadoop 2). This is typically a system-defined user. On secure Hadoop clusters running Kerberos, the shell commands will run as the Unix user who submitted the workflow containing the <shell> action.
+The elements that make up this action are as follows:
+job-tracker (required)
+name-node (required)
+prepare
+job-xml
+configuration
+exec (required)
+argument
+env-var
+file
+archive
+capture-output
+The <exec> element has the actual shell command with the arguments passed in through the <argument> elements. If the excutable is a script instead of a standard Unix command, the script needs to be copied to the workflow root directory on HDFS and defined via the <file> element as always. The <shell> action also includes an <env-var> element that contains the Unix environment variable, and it’s defined using the standard Unix syntax (e.g., PATH=$PATH:my_path). 
+
+
+==>
+  - OOzie shell action will require all executables (shell script, python script, jar files, etc.) to be uploaded on HDFS. The path for these executables should be specified in the "workflow.properties" file, then referenced in the "workflow.xml" file.
+  
+  - OOzie shell action is launched by yarn, using user "yarn". However for OOzie Map-Reduce action it's using the Unix user who launched the OOzie workflow. - may cause permission issues.
+  
+  - During Oozie shell execution, the work will be assigned to a random worker node - by yarn. Intermediate outputs generated by the workflow will be stored on local file directory of the worker node, then deleted after the workflow is finished.
+
+
+==> Mean to start a OOzie workflow:
+  $ oozie job -oozie http://[OOzieServer]:11000/oozie --verbose -config /[fullPath2JobPropertiesFile]/job.properties -run
+  ex.
+  oozie job -oozie http://prodny-hdp04.mio.local:11000/oozie --verbose -config /home/cloudera/uday/examples/apps/shell/job.properties -run 
+  
+  
+==>
+Shell example
+Let’s say there is a Python script that takes today’s date as one of the arguments and does some basic processing. Let’s assume it also requires an environment variable named TZ to set the time zone. This is how you will run it on the shell command line:
+$ export TZ=PST
+$ python test.py 07/21/2014
+Let’s convert this example to an Oozie <shell> action:
+<action name="myShellAction">
+    <shell xmlns="uri:oozie:shell-action:0.2">
+        <job-tracker>jt.mycompany.com:8032</job-tracker>
+        <name-node>hdfs://nn.mycompany.com:8020</name-node>   
+        <exec>/usr/bin/python</exec>
+        <argument>test.py</argument>
+        <argument>07/21/2014/argument>
+        <env-var>TZ=PST</env-var>
+        <file>test.py#test.py</file>
+        <capture-output/>
+    </shell>
+    <ok to="success"/>
+    <error to="fail"/>
+</action> 
+
+
+==>
+Oozie does not support the libjars option available as part of the Hadoop command line. But Oozie does provide several ways to handle JARs and shared libraries, which are covered in “Managing Libraries in Oozie”.
+In the following example, the myFile.txt file referred to by the <file> element needs to be deployed in the myDir1 subdirectory under the wf/ root directory on HDFS. A symlink named file1 will be created in the workflow root directory. The archive file mytar.tgz also needs to be copied to the workflow root directory on HDFS and Oozie will unarchive it into a subdirectory called mygzdir/ in the current execution directory on the Hadoop compute nodes. This is how Hadoop generally distributes files and archives using the distributed cache. Archives (TARs) are packaged and deployed, and the specified directory (mygzdir/) is the path where your MapReduce code can find the files in the archive:
+...
+    <file>hdfs://localhost:8020/user/myUser/wf/myDir1/myFile.txt#file1</file>
+    <archive>hdfs://localhost:8020/user/myUser/wf/mytar.tgz#mygzdir</archive>
+... 
+ Uday Menon: this explains what the '#' sign was doing and also tells us that we need to provide the full path before the # and just the symlink after the # 
+ 
+ 
+ ==>

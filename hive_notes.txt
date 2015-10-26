@@ -1,0 +1,58 @@
+==> in order to use beeline commandline, first thing is to connect to HiveServer using the correct port, default is:
+
+==> in order to have Spark SQL to use HIVE metastore (metadata for HDFS data, such as tables created, views and etc.) hive-site.xml should be copied to $SPARK_HOME/conf
+
+==> hive-site.xml have a retry.limit property that may need to change from default "1s" to "1"
+
+==> metastore process have to be up before HiveServer2 process, to bring it up, do:
+    hive --service metastore
+    
+==> launch beeline commandline with connection: > beeline -u jdbc:hive2://
+
+
+==> 
+Hive has a relational database on the master node it uses to keep track of state. For instance, when you CREATE TABLE FOO(foo string) LOCATION 'hdfs://tmp/';, this table schema is stored in the database. If you have a partitioned table, the partitions are stored in the database(this allows hive to use lists of partitions without going to the filesystem and finding them, etc). These sorts of things are the 'metadata'.
+
+When you drop an internal table, it drops the data, and it also drops the metadata.
+
+When you drop an external table, it only drops the meta data. That means hive is ignorant of that data now. It does not touch the data itself.
+
+
+==> 
+When installing pyhs2, if facing error about gcc or sasl:
+
+sasl (the python package) depends on libsasl2-dev (on a Debian/Ubuntu machine). The error you're seeing is that the compiler can't find the libraries that sasl is supposed to wrap.
+
+If you sudo apt-get install libsasl2-dev and rerun, it will likely be fixed.
+
+edit: Based on your comment, here's a robust way of getting this to work:
+
+curl -O -L ftp://ftp.cyrusimap.org/cyrus-sasl/cyrus-sasl-2.1.26.tar.gz
+tar xzf cyrus-sasl-2.1.2.26.tar.gz
+cd cyrus-sasl-2.1.26.tar.gz
+./configure && make install # may need sudo, doesn't work on Windows OS
+
+
+==>
+For creating hive external/internal tables, it's possible to infer table column definitions from a data file:
+CREATE [EXTERNAL] TABLE [IF NOT EXISTS] [db_name.]table_name
+  LIKE PARQUET 'hdfs_path_of_parquet_file'
+  [COMMENT 'table_comment']
+  [PARTITIONED BY (col_name data_type [COMMENT 'col_comment'], ...)]
+  [WITH SERDEPROPERTIES ('key1'='value1', 'key2'='value2', ...)]
+  [
+   [ROW FORMAT row_format] [STORED AS file_format]
+  ]
+  [LOCATION 'hdfs_path']
+  [TBLPROPERTIES ('key1'='value1', 'key2'='value2', ...)]
+  [CACHED IN 'pool_name']
+data_type
+  : primitive_type
+  
+  
+==>
+For loading CSV files into existing Hive tables, if want to skip the CSV header rows:
+  - SET skip.header.line.count = 1;
+
+  
+==>

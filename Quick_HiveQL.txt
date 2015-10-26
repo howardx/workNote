@@ -1,0 +1,195 @@
+==>
+create external table risk.pb_account_post(
+     Account_Name STRING,
+     Account_Number INT,
+     Break_Reason STRING,
+     Break_Resolution_Code INT,
+     Break_Type STRING,
+     Business_Age INT,
+     Business_Day STRING,
+     House_Requirements INT,
+     Last_Modified_By STRING,
+     Last_Modified_On STRING,
+     MIO_Short_Name STRING,
+     On_Off_Shore STRING,
+     Recon_Status STRING,
+     Remark STRING,
+     Status STRING,
+     System_Age INT,
+     User STRING,
+     User_Group STRING)
+row format delimited fields terminated BY ',' lines terminated BY '\n'
+tblproperties("skip.header.line.count"="1"); 
+
+ - the 2nd last line for above query is for loading CSV files (matching format)
+ 
+ - the last line is for skipping CSV header row(s)
+ 
+ 
+==>
+ LOAD DATA INPATH "/user/cloudera/risk/CMS_IVP_pilot/20150821_db_pb_account_post_recon.csv" INTO TABLE risk.pb_account_post;
+ 
+ - If the file loaded is in hdfs, it is moved into the Hive-controlled file system namespace. The root of the Hive directory is specified by the option 'hive.metastore.warehouse.dir' in hive-default.xml. We advise users to create this directory before trying to create tables via Hive
+ h
+ - The default Hive directory on HDFS for storing these files is:
+ /user/hive/warehouse/[db.name]/[table.name]/[files' name].[file.postfix]
+ 
+ - If continue to call "LOAD DATA" with new files to existing table, new data will be APPENDED to the existing table. If use the "OVERWRITE" keyword then the existing table will be overwrote.
+ 
+ - The LOAD DATA command only copy the files to the destination directory. It doesn't read the records of the input file, so it cannot do partitioning based on record values.
+
+
+==> load CSV file into partitioned HIVE table:
+
+- create a landing hive table for CSV files without partition:
+
+create external table risk.landing_fcm_account_post(
+     Account_Number STRING,
+     Break_Reason STRING,
+     Break_Resolution_Code INT,
+     Break_Type STRING,
+     Business_Age INT,
+     Business_Day STRING,
+     Collateral_Held DOUBLE,
+     Counterparty STRING,
+     Geneva_Portfolio_ID STRING,
+     IM_IA DOUBLE,
+     Last_Modified_By STRING,
+     Last_Modified_On STRING,
+     MIO_Product_Name STRING,
+     Margin_Call_Excess DOUBLE,
+     On_Off_Shore STRING,
+     Recon_Status STRING,
+     Remark STRING,
+     Status STRING,
+     System_Age INT,
+     Unrealized_PnL DOUBLE,
+     User STRING,
+     User_Group STRING)
+row format delimited fields terminated BY ',' lines terminated BY '\n'
+tblproperties("skip.header.line.count"="1"); 
+
+- create the "official" partitioned hive table:
+
+create external table risk.fcm_account_post(
+     Account_Number STRING,
+     Break_Reason STRING,
+     Break_Resolution_Code INT,
+     Break_Type STRING,
+     Business_Age INT,
+     Business_Day STRING,
+     Collateral_Held DOUBLE,
+     Counterparty STRING,
+     Geneva_Portfolio_ID STRING,
+     IM_IA DOUBLE,
+     Last_Modified_By STRING,
+     --Last_Modified_On STRING,
+     MIO_Product_Name STRING,
+     Margin_Call_Excess DOUBLE,
+     On_Off_Shore STRING,
+     Recon_Status STRING,
+     Remark STRING,
+     Status STRING,
+     System_Age INT,
+     Unrealized_PnL DOUBLE,
+     User STRING,
+     User_Group STRING)
+PARTITIONED BY (Last_Modified_On STRING)  -- partition column, not in the above "create table()" clause !!
+row format delimited fields terminated BY ',' lines terminated BY '\n'
+tblproperties("skip.header.line.count"="1"); 
+
+- load CSV file into the un-partitioned / landing table created first
+
+- set config changes:
+SET hive.exec.dynamic.partition = true;
+SET hive.exec.dynamic.partition.mode = nonstrict;
+
+- insert into partitioned table from landing table using "select" clause: ( all columns SHOULD be in the "Select" clause)
+
+INSERT INTO TABLE risk.fcm_account_post PARTITION(Last_Modified_On) SELECT Account_Number, Break_Reason, Break_Resolution_Code, Break_Type, Business_Age, Business_Day, Collateral_Held, Counterparty, Geneva_Portfolio_ID, IM_IA, Last_Modified_By, MIO_Product_Name, Margin_Call_Excess, On_Off_Shore, Recon_Status, Remark, Status, System_Age, Unrealized_PnL, User, User_Group, Last_Modified_On FROM risk.landing_fcm_account_post;
+
+- couple things to note:
+	~ If want to "PARTITIONED BY" particular column(s), then the column(s)'s name(s) should be in the "PARTITIONED BY" clause, not in the "create table()" clause - they/it cann't exist more than once
+
+	~ If external table created, then even if table is dropped, then right after re-creating table it will be populated by the data that was in the external table (NOT for partitioned table)
+
+
+==>
+see details of hive table: describe extended <table.name>
+
+
+==>
+create external table risk.landing_pb_product_post(
+     Account INT,
+     Account_Type STRING,
+     Break_Reason STRING,
+     Break_Resolution_Code INT,
+     Break_Type STRING,
+     Business_Age INT,
+     Business_Day STRING,
+     House_Equity INT,
+     House_Excess INT,
+     House_Requirements INT,
+     Last_Modified_By STRING,
+     Last_Modified_On STRING,
+     MIO_Product STRING,
+     Recon_Status STRING,
+     Remark STRING,
+     Status STRING,
+     System_Age INT,
+     User STRING,
+     User_Group STRING)
+row format delimited fields terminated BY ',' lines terminated BY '\n'
+tblproperties("skip.header.line.count"="1");
+
+create external table risk.pb_product_post(
+     Account INT,
+     Account_Type STRING,
+     Break_Reason STRING,
+     Break_Resolution_Code INT,
+     Break_Type STRING,
+     Business_Age INT,
+     Business_Day STRING,
+     House_Equity INT,
+     House_Excess INT,
+     House_Requirements INT,
+     Last_Modified_By STRING,
+     -- Last_Modified_On STRING,
+     MIO_Product STRING,
+     Recon_Status STRING,
+     Remark STRING,
+     Status STRING,
+     System_Age INT,
+     User STRING,
+     User_Group STRING)
+PARTITIONED BY (Last_Modified_On STRING)
+row format delimited fields terminated BY ',' lines terminated BY '\n'
+tblproperties("skip.header.line.count"="1");
+
+set hive.execution.engine=spark;
+SET hive.exec.dynamic.partition = true;
+SET hive.exec.dynamic.partition.mode = nonstrict;
+
+INSERT INTO TABLE risk.pb_product_post PARTITION(Last_Modified_On) SELECT Account,
+     Account_Type,
+     Break_Reason,
+     Break_Resolution_Code,
+     Break_Type,
+     Business_Age,
+     Business_Day,
+     House_Equity,
+     House_Excess,
+     House_Requirements,
+     Last_Modified_By,
+     MIO_Product,
+     Recon_Status,
+     Remark,
+     Status,
+     System_Age,
+     User,
+     User_Group,
+     Last_Modified_On
+     FROM risk.landing_pb_product_post;
+
+
+==>

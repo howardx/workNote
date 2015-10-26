@@ -1,0 +1,33 @@
+==> In short, HCatalog opens up the hive metadata to other mapreduce tools. Every mapreduce tools has its own notion about HDFS data (example Pig sees the HDFS data as set of files, Hive sees it as tables). With having table based abstraction, HCatalog supported mapreduce tools do not need to care about where the data is stored, in which format and storage location (HBase or HDFS).
+
+We do get the facility of WebHcat to submit jobs in an RESTful way if you configure webhcat along Hcatalog.
+
+==> WebHCat and HCatalog are installed with Hive, starting with Hive release 0.11.0.
+
+==> Hcatalog is NOT thread safe
+
+==> WebHCat config files in CDH distributions are located at:
+/opt/cloudera/parcels/CDH-5.4.4-1.cdh5.4.4.p0.4/etc/hive-webhcat/conf.dist/
+
+    - and the launching script for webhcat under CDH setup is in ( in case "service webhcat-server start" doesn't work":
+/opt/cloudera/parcels/CDH-5.4.4-1.cdh5.4.4.p0.4/lib/hive-hcatalog/sbin/
+
+==> WebHcat will not be up by default, neither can it be brought up using cloudera manager. it has to be brought up by using the launching script
+    - the launching script will call Hcatalog by using the command line tool "hcat" here it may cause path issues because CDH has put hcat into a path, but the launching script of WebHcat may try to fetch hcat from a differnet path. (may need to modify the script to finally launch WebHcat)
+    - default port for WebHcat is 50111
+    
+==> full path for zookeeper jar and hive executeable need to be specified in webhcat-site.xml config file in order to run webhcat server:
+<configuration>
+  <property>
+    <name>templeton.libjars</name>
+    <value>/path/to/jar/zookeeper-3.4.5-cdh4.3.0.jar</value>
+    <description>Jars to add to the classpath.</description>
+  </property>
+  <property>
+    <name>templeton.hive.path</name>
+    <value>/path/to/hive/hive/bin/hive</value>
+    <description>The path to the Hive executable.</description>
+  </property>
+</configuration>
+
+==> 

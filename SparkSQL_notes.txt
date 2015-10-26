@@ -1,0 +1,15 @@
+#Cluster mode
+$SPARK_HOME/bin/spark-sql  --master yarn-client --driver-class-path $HIVE_HOME/lib/mysql-connector-java.jar 
+
+> select count(*) from clean_pb_ms_pos;
+15/07/30 13:17:53 INFO DAGScheduler: Job 1 finished: collect at SparkPlan.scala:84, took 11.096953 s
+3821882
+Time taken: 11.584 seconds, Fetched 1 row(s)
+
+#local mode
+$SPARK_HOME/bin/spark-sql   --driver-class-path $HIVE_HOME/lib/mysql-connector-java.jar 
+
+> select count(*) from clean_pb_ms_pos;
+15/07/30 13:25:43 INFO DAGScheduler: Job 1 finished: collect at SparkPlan.scala:84, took 30.623510 s
+3821882
+Time taken: 31.119 seconds, Fetched 1 row(s)

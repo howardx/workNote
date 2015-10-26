@@ -1,0 +1,48 @@
+==> When a machine has multiple versions of python installed, then if modules "easy_install" and "pip" were installed, then these 2 package managmeent tools will be wired up with the default python version only. So if a newer version of python is installed, "pip" and "easy_install" will still install packages for the default python.
+The way to solve this problem is:
+http://www.lecloud.net/post/61401763496/install-update-to-python-27-and-latest-pip-on
+
+==> Python ODBC example:
+
+import pyodbc
+cnxn = pyodbc.connect('DRIVER={Cloudera ODBC Driver for Apache Hive}; HOST=prodny-hdp05.mio.local;PORT=10000;DATABASE=default;UID=cloudera;PWD=cloudera', autocommit=True)
+
+==> 
+Import "pyspark" from ipython or python shell:
+  - in cloudera cluster, "pyspark" module is installed at:
+  /opt/cloudera/parcels/CDH-5.4.4-1.cdh5.4.4.p0.4/lib/spark/python/
+  
+  - The above path should be added into "~/.bashrc" or "~/.bash_profile" file:
+  
+  export SPARK_HOME=/opt/cloudera/parcels/CDH-5.4.4-1.cdh5.4.4.p0.4/lib/spark
+  export PYTHONPATH=$SPARK_HOME/python/:$PYTHONPATH
+  
+  - py4j lib should also be added to the above files:
+  export PYTHONPATH=$SPARK_HOME/python/lib/py4j-0.8.2.1-src.zip:$PYTHONPATH
+  
+  - .bash_profile and .bashrc files should be "executed":
+   . ~/.bash_profile
+   
+  - in ipython or python shell now we can do "import pyspark"
+  
+ 
+==>
+to open ".mat" files using python:
+import scipy.io
+mat = scipy.io.loadmat('file.mat')
+
+"mat" is a dictionary with keys as column names within the mat file
+values of the dictionary are numpy arrays 
+
+
+==>
+in order to get dimention information of numpy arrays, can use:
+"numpyArray.shape"
+
+
+==>
+get list of defined variables in ipython:
+dir()
+
+
+==>

@@ -1,0 +1,61 @@
+==============================================================================================================================================================================================================
+
+1.	We have a use case where three distinct workflow jobs need to be executed in the following order:
+a.	SSIS job on SQLSERVER
+b.	Python code on Windows Server
+c.	Hive SQL on Hadoop cluster
+
+Can OOzie support this scenario? The OOzie documentation calls for workflows to be scheduled to run on the cluster but our scenario above requires for some of these workflows to run outside the cluster.
+
+2.	Is the OOzie UI OPS-friendly i.e., can it support the following scenarios:
+a.	Show hierarchy of workflows within a bundle along with their current status
+b.	Allow user to put a workflow ON_HOLD (suspend the next execution of this workflow and all dependent workflows) or ON_ICE (suspend the next execution of this workflow but allow dependent workflows to run)
+c.	Allow user to force-start a workflow or  kill a running workflow
+
+- most customer use Hue UI
+- when create workflow using Hue, workflow.xml is in Hue database, maybe available
+
+3.	We launched a shell action using OOzie, contains a shell script does nothing but generating a text file. However, the job keeps failing until we granted all possible permissions (read, write & execute) of path “/user/cloudera” to all users (screenshot attached). Then the job worked and we discovered that the shell action was executed by OOzie using user “yarn”(screenshot attached).
+
+On the other hand, we also launched a map-reduce workflow using OOzie, it worked fine (without giving extra permissions) and the user used by OOzie was “cloudera”. Questions:
+a.	Why do OOzie use user “yarn” to execute shell workflow, while it uses user “cloudera” to execute map-reduce workflow? Can we configure the user used by OOzie?
+b.	If we can’t specify the user used by OOzie, what is the best practice for directory structure/permission when Oozie is executing shell scripts – I don’t think it’ll be safe to grant all permission of path “/user/cloudera” to all users.
+
+4.	OOzie workflows require a “workflow.xml” file. For different kind of OOzie workflows – shell, map-reduce, hive, etc….; could you provide each with a template “workflow.xml” file so we can plug in what we need to customize when creating new workflows? We searched online and such documentations are very sparse.
+
+6. What SQL database does Oozie use to save job state? Can we query that database to obtain job status/history? 
+- oozie server or cloudera manager UI for OOzie
+- maybe Navigator
+
+7. Oozie expects all application files to be on HDFS. For jobs that need to run outside the cluster and on designated machines, the workaround is to invoke them via ssh. SSH is a synchronous command so job status will be available. Will the oozie job log file capture errors thrown by the remote job? 
+ - stdout -> oozie log
+
+* 8. Are there any known scenarios where SSH would not work?
+
+9. Changing oozie.launcher.mapred.job.queue.name is recommended as a way to avoid deadlock with all launcher jobs occulying task slots. Is this a common practice?
+ - yarn queue's name, depends on yarn resource management strat
+
+
+========================================================================================================================================================================================================
+
+
+1.       For OOzie workflows, can we trigger scripts (bash, python) that resides on local file system? I see that my workflow keeps failing ( screenshot attached ).
+
+They need to reside in HDFS because Oozie workflow actions run on a random worker node (as decided by YARN when the job runs) so the local filesystem can be different every time you run it.
+
+
+2.       Following question 1, for testing purposes, I scheduled my job as a per-minute job; so why does the job keeps running multiple times in a minute? (I didn’t configure what should the job do if it failed)
+
+3.       For the HiveQL scripts in the workflow, do they need to be copied over to HDFS before execution, or they can reside on local file system?  
+They need to be copied to HDFS as well.
+
+4.       For this type of workflows – partially on local file system and partially on HIVE, would you recommend OOzie or some other scheduler?
+We do recommend Oozie for this type of workflow.
+
+5.       If I create a OOzie workflow using Hue, where can I find the XML files generated on CDH cluster node(s) – which node(s) and which path?
+The Oozie editor has its own internal representation of the coordinators/workflows that you are developing, and it is only when you submit them to Oozie that they get turned into XML files that Oozie will recognize. The intention is that if you use the editor that you don't need to touch the XML files anymore. If you really want to see what they look like then they are available in the Definition tab of the coordinator/workflow instance when you submit them.
+
+6.       Following the 4th question, on the OOzie web UI, can I modify the job configuration XML file and update it there?
+We don't think that will be possible, but still checking. You should be able to do all the steps using only the Hue UI.
+I'm still checking on question 2. Would you mind to copy the scripts to HDFS? You may need to add a reference to the script file in the "Files" section for Oozie to be able to run it.
+

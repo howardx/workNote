@@ -1,0 +1,5 @@
+==> To start Hue:
+nohup /usr/share/hue/build/env/bin/supervisor &
+The above program kicks off 2 processes - supervisor and hue; when stopping hue, need to kill the 2 process
+
+==>

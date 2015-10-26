@@ -1,0 +1,234 @@
+
+Sqoop Cheat-sheet
+==================
+
+
+1. Installing JDBC Drivers
+Problem
+Sqoop requires the JDBC drivers for your specific database server (MySQL, Oracle, etc.) in order to transfer data. They are not bundled in the tarball or packages.
+Solution
+You need to download the JDBC drivers and then install them into Sqoop. JDBC drivers are usually available free of charge from the database vendors’ websites. Some enterprise data stores might bundle the driver with the installation itself. After you’ve obtained the driver, you need to copy the driver’s JAR file(s) into Sqoop’s lib/ directory. If you’re using the Sqoop tarball, copy the JAR files directly into the lib/ directory after unzipping the tarball. If you’re using packages, you will need to copy the driver files into the /usr/lib/sqoop/lib directory.
+
+2. Installing Specialized Connectors
+
+A significant strength of Sqoop is its ability to work with all major and minor database systems and enterprise data warehouses. To abstract the different behavior of each system, Sqoop introduced the concept of connectors: all database-specific operations are delegated from core Sqoop to the specialized connectors. Sqoop itself bundles many such connectors; you do not need to download anything extra in order to run Sqoop. The most general connector bundled with Sqoop is the Generic JDBC Connector that utilizes only the JDBC interface. This will work with every JDBC-compliant database system. In addition to this generic connector, Sqoop also ships with specialized connectors for MySQL, Oracle, PostgreSQL, Microsoft SQL Server, and DB2, which utilize special properties of each particular database system. You do not need to explicitly select the desired connector, as Sqoop will automatically do so based on your JDBC URL.
+
+3. Starting Sqoop
+sqoop import \
+  -Dsqoop.export.records.per.statement=1 \
+  --connect jdbc:mssql://devchi-sql01\int_miodb01 \
+  --username sqoop \
+  --password sqoop \
+  --table cities \
+  -- \
+  --schema us
+  
+  $SQOOP_HOME/bin/sqoop-import --connect "jdbc:sqlserver://devchi-sql01\int_miodb01; username=MIO\Uday Menon; database=DB_CP" --table dbo.CLEAN_PB_MS_POS --target-dir /user/hadoop/ -P
+  
+  Sqoop has a bewildering number of command-line parameters (more than 60). Type sqoop help to retrieve the entire list. Type sqoop help TOO (e.g., sqoop help import) to get detailed information for a specific tool.
+  
+  4. Protecting Your Password
+  Here’s a Sqoop execution that will read the password from standard input:
+   sqoop import \
+    --connect jdbc:mysql://mysql.example.com/sqoop \
+    --username sqoop \
+    --table cities \
+    -P
+  Here’s an example of reading the password from a file:
+   sqoop import \
+    --connect jdbc:mysql://mysql.example.com/sqoop \
+    --username sqoop \
+    --table cities \
+  --password-file my-sqoop-password
+  
+  5. Compressing Imported Data
+  
+  Use the parameter --compress to enable compression:
+   sqoop import \
+    --connect jdbc:mysql://mysql.example.com/sqoop \
+    --username sqoop \
+    --table cities \
+    --compress
+  Discussion
+  Sqoop takes advantage of the inherent parallelism of Hadoop by leveraging Hadoop’s execution engine, MapReduce, to perform data transfers. As MapReduce already has excellent support for compression, Sqoop simply reuses its powerful abilities to provide compression options. By default, when using the --compress parameter, output files will be compressed using the GZip codec, and all files will end up with a .gz extension. You can choose any other codec using the --compression-codec parameter. The following example uses the BZip2 codec instead of GZip (files on HDFS will end up having the .bz2 extension):
+   sqoop import --compress \
+  --compression-codec org.apache.hadoop.io.compress.BZip2Codec
+  
+  6. Speeding Up Transfers
+  For some databases you can take advantage of the direct mode by using the --direct parameter:
+   sqoop import \
+    --connect jdbc:mysql://mysql.example.com/sqoop \
+    --username sqoop \
+    --table cities \
+    --direct
+  Discussion
+Rather than using the JDBC interface for transferring data, the direct mode delegates the job of transferring data to the native utilities provided by the database vendor. In the case of MySQL, the mysqldump and mysqlimport will be used for retrieving data from the database server or moving data back. In the case of PostgreSQL, Sqoop will take advantage of the pg_dump utility to import data. Using native utilities will greatly improve performance, as they are optimized to provide the best possible transfer speed while putting less burden on the database server. There are several limitations that come with this faster import. For one, not all databases have available native utilities. This mode is not available for every supported database. Out of the box, Sqoop has direct support only for MySQL and PostgreSQL.
+
+7. Controlling Parallelism
+
+Sqoop by default uses four concurrent map tasks to transfer data to Hadoop. Transferring bigger tables with more concurrent tasks should decrease the time required to transfer all data. You want the flexibility to change the number of map tasks used on a per-job basis.
+Solution
+Use the parameter --num-mappers if you want Sqoop to use a different number of mappers. For example, to suggest 10 concurrent tasks, you would use the following Sqoop command:
+ sqoop import \
+  --connect jdbc:mysql://mysql.example.com/sqoop \
+  --username sqoop \
+  --password sqoop \
+  --table cities \
+  --num-mappers 10
+Discussion
+The parameter --num-mappers serves as a hint. In most cases, you will get the specified number of mappers, but it’s not guaranteed. If your data set is very small, Sqoop might resort to using a smaller number of mappers. For example, if you’re transferring only 4 rows yet set --num-mappers to 10 mappers, only 4 mappers will be used, as the other 6 mappers would not have any data to transfer.
+
+Controlling the amount of parallelism that Sqoop will use to transfer data is the main way to control the load on your database. Using more mappers will lead to a higher number of concurrent data transfer tasks, which can result in faster job completion. However, it will also increase the load on the database as Sqoop will execute more concurrent queries. Doing so might affect other queries running on your server, adversely affecting your production environment. Increasing the number of mappers won’t always lead to faster job completion. While increasing the number of mappers, there is a point at which you will fully saturate your database. Increasing the number of mappers beyond this point won’t lead to faster job completion; in fact, it will have the opposite effect as your database server spends more time doing context switching rather than serving data.
+
+8. Encoding NULL Values
+Problem
+Sqoop encodes database NULL values using the null string constant. Your downstream processing (Hive queries, custom MapReduce job, or Pig script) uses a different constant for encoding missing values. You would like to override the default one.
+Solution
+You can override the NULL substitution string with the --null-string and --null-non-string parameters to any arbitrary value. For example, use the following command to override it to \N:
+ sqoop import \
+  --connect jdbc:mysql://mysql.example.com/sqoop \
+  --username sqoop \
+  --password sqoop \
+  --table cities \
+  --null-string '\\N' \
+  --null-non-string '\\N'
+  
+  9. Importing All Your Tables
+Problem
+You would like to import all tables from your database at once using one command rather than importing the tables one by one.
+Solution
+Rather than using the import tool for one table, you can use the import-all-tables tool. For example, to import all tables from our example database, you would use the following Sqoop command:
+ sqoop import-all-tables \
+  --connect jdbc:mysql://mysql.example.com/sqoop \
+  --username sqoop \
+  --password sqoop
+  
+  10. Importing Only New Data
+  The following example will transfer only those rows whose value in column id is greater than 1:
+   sqoop import \
+    --connect jdbc:mysql://mysql.example.com/sqoop \
+    --username sqoop \
+    --password sqoop \
+    --table visits \
+    --incremental append \
+    --check-column id \
+  --last-value 1
+  
+  11. Incrementally Importing Mutable Data
+  
+  Use the lastmodified mode instead of the append mode. For example, use the following command to transfer rows whose value in column last_update_date is greater than 2013-05-22 01:01:01:
+   sqoop import \
+    --connect jdbc:mysql://mysql.example.com/sqoop \
+    --username sqoop \
+    --password sqoop \
+    --table visits \
+    --incremental lastmodified \
+    --check-column last_update_date \
+  --last-value "2013-05-22 01:01:01"
+  
+  12. Importing Data from Two Tables
+  
+  sqoop import \
+    --connect jdbc:mysql://mysql.example.com/sqoop \
+    --username sqoop \
+    --password sqoop \
+    --query 'SELECT normcities.id, \
+                    countries.country, \
+                    normcities.city \
+                    FROM normcities \
+                    JOIN countries USING(country_id) \
+                    WHERE $CONDITIONS' \
+    --split-by id \
+  --target-dir cities
+  
+  Discussion
+  The free-form query import is one of the advanced features of Sqoop. As with all advanced software features, it gives you great power. With great power comes significant responsibility.
+There is a lot to be aware of when using free-form query imports. By using query imports, Sqoop can’t use the database catalog to fetch the metadata. This is one of the reasons why using table import might be faster than the equivalent free-form query import. Also, you have to manually specify some additional parameters that would otherwise be populated automatically. In addition to the --query parameter, you need to specify the --split-by parameter with the column that should be used for slicing your data into multiple parallel tasks. This parameter usually automatically defaults to the primary key of the main table. The third required parameter is --target-dir, which specifies the directory on HDFS where your data should be stored.
+
+13. Scheduling Sqoop Jobs with Oozie
+
+Oozie includes special Sqoop actions that you can use to call Sqoop in your workflow. For example:
+ <workflow-app name="sqoop-workflow" xmlns="uri:oozie:workflow:0.1">
+    ...
+    <action name="sqoop-action">
+        <sqoop xmlns="uri:oozie:sqoop-action:0.2">
+            <job-tracker>foo:8021</job-tracker>
+            <name-node>bar:8020</name-node>
+            <command>import --table cities --connect ...</command>
+        </sqoop>
+        <ok to="next"/>
+        <error to="error"/>
+    </action>
+    ...
+</workflow-app>
+Discussion
+Starting from version 3.2.0, Oozie has built-in support for Sqoop. You can use the special action type in the same way you would execute a MapReduce action. You have two options for specifying Sqoop parameters. The first option is to use one tag, <command>, to list all the parameters, for example:
+ <command>import --table cities --username sqoop --password sqoop ...</command>
+In this case, Oozie will take the entire content of the <command> tag and split it by spaces into a list of parameters. This list is then passed as is into Sqoop.
+
+14. Importing Data Directly into Hive
+
+Sqoop supports importing into Hive. Add the parameter --hive-import to your command to enable it:
+ sqoop import \
+  --connect jdbc:mysql://mysql.example.com/sqoop \
+  --username sqoop \
+  --password sqoop \
+  --table cities \
+  --hive-import
+Discussion
+The biggest advantage of using Sqoop for populating tables in Hive is that it can automatically populate the metadata for you. If the table in Hive does not exist yet, Sqoop will simply create it based on the metadata fetched for your table or query. If the table already exists, Sqoop will import data into the existing table. If you’re creating a new Hive table, Sqoop will convert the data types of each column from your source table to a type compatible with Hive. Usually this conversion is straightforward: for example, JDBC types VARCHAR, CHAR, and other string-based types are all mapped to Hive STRING.
+
+15. Using Partitioned Hive Tables
+
+Problem
+You want to import data into Hive on a regular basis (for example, daily), and for that purpose your Hive table is partitioned. You would like Sqoop to automatically import data into the partition rather than only to the table.
+Solution
+Sqoop supports Hive partitioning out of the box. In order to take advantage of this functionality, you need to specify two additional parameters: --hive-partition-key, which contains the name of the partition column, and --hive-partition-value, which specifies the desired value. For example, if your partition column is called day and you want to import your data into the value 2013-05-22, you would use the following command:
+ sqoop import \
+  --connect jdbc:mysql://mysql.example.com/sqoop \
+  --username sqoop \
+  --password sqoop \
+  --table cities \
+  --hive-import \
+  --hive-partition-key day \
+  --hive-partition-value "2013-05-22"
+  
+  16. Replacing Special Delimiters During Hive Import
+Problem
+You’ve imported the data directly into Hive using Sqoop’s --hive-import feature. When you call SELECT count(*) FROM your_table query to see how many rows are in the imported table, you get a larger number than is stored in the source table on the relational database side.
+Solution
+This issue is quite often seen when the data contains characters that are used as Hive’s delimiters. You can instruct Sqoop to automatically clean your data using --hive-drop-import-delims, which will remove all \n, \t, and \01 characters from all string-based columns:
+ sqoop import \
+  --connect jdbc:mysql://mysql.example.com/sqoop \
+  --username sqoop \
+  --password sqoop \
+  --table cities \
+  --hive-import \
+  --hive-drop-import-delims
+If removing the special characters is not an option in your use case, you can take advantage of the parameter --hive-delims-replacement, which will accept a replacement string. Instead of removing separators completely, they will be replaced with a specified string. The following example will replace all \n, \t, and \01 characters with the string SPECIAL:
+ sqoop import \
+  --connect jdbc:mysql://mysql.example.com/sqoop \
+  --username sqoop \
+  --password sqoop \
+  --table cities \
+  --hive-import \
+  --hive-delims-replacement "SPECIAL"
+  
+  17. Using the Correct NULL String in Hive
+Problem
+You’ve imported your data into Hive using Sqoop and now you’re trying to query it. However, you can see that some columns contain the correct NULL value but some contain the string literal null and are not selected using the expression column IS NULL.
+Solution
+Due to differences in the default NULL substitution string between Sqoop and Hive, you have to override the Sqoop default substitution strings to be compatible with Hive. For example:
+ sqoop import \
+  --connect jdbc:mysql://mysql.example.com/sqoop \
+  --username sqoop \
+  --password sqoop \
+  --table cities \
+  --hive-import \
+  --null-string '\\N' \
+  --null-non-string '\\N'
+  
+  
+  
+  
+  

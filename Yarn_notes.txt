@@ -1,0 +1,11 @@
+==> stop-yarn.sh and start-yarn.sh will look for PID (.pid) file for yarn's daemon processes.
+If the file is missing, even the process is running, the script can't start/stop the porcesses.
+
+PID files for yarn by default lives in /tmp and will be cleaned up periodically. It can be configured to different directories.
+
+==> yarn can only be started on the box where is configured to run the ResourceManager in yarn-site.xml, if run start-yarn.sh on other nodes in the cluster, yarn won't start and will fail
+
+==> getting running processes names:
+    ps auxwww | grep [processName]
+    
+==> 
